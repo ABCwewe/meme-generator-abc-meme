@@ -1,7 +1,7 @@
 [package]
 name = "meme-generator-abc-meme"
 description = "ABC's meme pack"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["ABCwewe <abcwewe@outlook.com>"]
 license = "MIT"
 readme = "README.md"

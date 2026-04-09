@@ -21,7 +21,11 @@ fn mutsumi_think(_: Vec<InputImage>, texts: Vec<String>, _: NoOptions) -> Result
         text,
         20.0,
         50.0,
-        None,
+        text_params!(
+            font_families = &["FZShaoEr-M11S"],
+            text_align = TextAlign::Center,
+            paint = new_paint(Color::from_rgb(0, 0, 0)),
+        ),
     )?;
     encode_png(surface.image_snapshot())
 }
