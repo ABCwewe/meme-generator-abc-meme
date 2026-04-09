@@ -6,6 +6,7 @@ use meme_generator_utils::{
     canvas::CanvasExt,
     encoder::encode_png,
     image::ImageExt,
+    text_params,
     tools::{load_image, local_date},
 };
 
