@@ -1,4 +1,4 @@
-use skia_safe::IRect;
+use skia_safe::{Color, IRect, textlayout::TextAlign};
 
 use meme_generator_core::error::Error;
 use meme_generator_utils::{
@@ -7,7 +7,7 @@ use meme_generator_utils::{
     encoder::encode_png,
     image::ImageExt,
     text_params,
-    tools::{load_image, local_date},
+    tools::{load_image, local_date, new_paint},
 };
 
 use crate::{options::NoOptions, register_meme};
