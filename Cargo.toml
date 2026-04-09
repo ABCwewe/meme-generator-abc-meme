@@ -1,5 +1,5 @@
 [package]
-name = "meme_generator_abc-meme"
+name = "meme-generator-abc-meme"
 description = "ABC's meme pack"
 version = "0.0.1"
 authors = ["ABCwewe <abcwewe@outlook.com>"]
