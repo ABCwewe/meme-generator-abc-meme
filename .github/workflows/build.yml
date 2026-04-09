@@ -33,7 +33,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64
-          path: target/release/libmeme-generator-abc-meme*.so
+          path: target/release/lib*.so
 
   build_linux_arm64:
     runs-on: ubuntu-24.04-arm
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-aarch64
-          path: target/aarch64-unknown-linux-gnu/release/libmeme-generator-abc-meme*.so
+          path: target/aarch64-unknown-linux-gnu/release/lib*.so
 
   build_macos:
     runs-on: ${{ matrix.platform.runner }}
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.artifact_name }}
-          path: target/${{ matrix.platform.target }}/release/libmeme-generator-abc-meme*.dylib
+          path: target/${{ matrix.platform.target }}/release/lib*.dylib
 
   build_windows:
     runs-on: windows-latest
@@ -99,4 +99,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x86_64
-          path: target/x86_64-pc-windows-msvc/release/meme-generator-abc-meme*.dll
+          path: target/x86_64-pc-windows-msvc/release/*.dll
