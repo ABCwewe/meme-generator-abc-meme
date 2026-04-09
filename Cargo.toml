@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/ABCwewe/meme-generator-abc-meme"
 repository = "https://github.com/ABCwewe/meme-generator-abc-meme"
-edition = "2026"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
