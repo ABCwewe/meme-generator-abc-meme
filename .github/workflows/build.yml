@@ -1,0 +1,102 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    container: ghcr.io/memecrafters/meme-generator-build-container:latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --features embed-freetype
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: target/release/libmeme-generator-abc-meme*.so
+
+  build_linux_arm64:
+    runs-on: ubuntu-24.04-arm
+    container: ghcr.io/memecrafters/meme-generator-build-container:arm64
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --target aarch64-unknown-linux-gnu --features embed-freetype
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-aarch64
+          path: target/aarch64-unknown-linux-gnu/release/libmeme-generator-abc-meme*.so
+
+  build_macos:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: macos-x86_64
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: macos-aarch64
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Build
+        run: |
+          rustup target add ${{ matrix.platform.target }}
+          cargo build --release --target ${{ matrix.platform.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.artifact_name }}
+          path: target/${{ matrix.platform.target }}/release/libmeme-generator-abc-meme*.dylib
+
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Build
+        run: |
+          rustup target add x86_64-pc-windows-msvc
+          cargo build --release --target x86_64-pc-windows-msvc
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64
+          path: target/x86_64-pc-windows-msvc/release/meme-generator-abc-meme*.dll

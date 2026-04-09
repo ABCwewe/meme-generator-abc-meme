@@ -1,0 +1,27 @@
+[package]
+name = "meme_generator_abc-meme"
+description = "ABC's meme pack"
+version = "0.0.1"
+authors = ["ABCwewe <abcwewe@outlook.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/ABCwewe/meme-generator-abc-meme"
+repository = "https://github.com/ABCwewe/meme-generator-abc-meme"
+edition = "2026"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+inventory = "0.3"
+serde = "1.0"
+skia-safe = { version = "0.93", features = ["textlayout"] }
+
+meme_generator_core = "0.0.5"
+meme_generator_utils = "0.0.9"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
