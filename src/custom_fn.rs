@@ -1,4 +1,4 @@
-use skia_safe::{Canvas, Font, FontMgr, FontStyle, IRect, Paint, Point,};
+use skia_safe::{Canvas, Font, FontMgr, FontStyle, IRect, Paint, Point};
 
 pub fn draw_text_vertical_auto_font_size(
     canvas: &Canvas,
@@ -8,7 +8,7 @@ pub fn draw_text_vertical_auto_font_size(
     max_font_size: f32,
     font_families: &[&str],
     paint: &Paint,
-) {  // <-- 改为返回 ()
+) {
     let chars: Vec<char> = text.chars().collect();
     if chars.is_empty() {
         return;
@@ -18,17 +18,21 @@ pub fn draw_text_vertical_auto_font_size(
     let rect_h = (rect.bottom - rect.top) as f32;
 
     let font_mgr = FontMgr::new();
-    let typeface = font_families
+
+    let Some(typeface) = font_families
         .iter()
         .find_map(|name| font_mgr.match_family_style(name, FontStyle::default()))
-        .unwrap_or_else(|| {
-            font_mgr
-                .match_family_style("", FontStyle::default())
-                .expect("failed to load default typeface")
-        });
+        .or_else(|| {
+            (0..font_mgr.count_families()).find_map(|i| {
+                let family_name = font_mgr.family_name(i);
+                font_mgr.match_family_style(&family_name, FontStyle::default())
+            })
+        })
+    else {
+        return;
+    };
 
     let mut font_size = max_font_size;
-    let step = 1.0_f32;
 
     let layout = loop {
         if font_size < min_font_size {
@@ -76,7 +80,7 @@ pub fn draw_text_vertical_auto_font_size(
             break (font_size, positions);
         }
 
-        font_size -= step;
+        font_size -= 1.0;
     };
 
     let (chosen_size, positions) = layout;
