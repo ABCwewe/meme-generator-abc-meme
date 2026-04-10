@@ -97,7 +97,7 @@ register_meme!(
     min_texts = 1,
     max_texts = 1,
     default_texts = &["牛逼"],
-    keywords = &["宇智波鼬说", "鼬说", "yzbys"],
+    keywords = &["yzbys"],
     date_created = local_date(2026, 4, 10),
     date_modified = local_date(2026, 4, 10),
 );
