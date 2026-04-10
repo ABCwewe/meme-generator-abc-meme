@@ -59,7 +59,7 @@ fn uchiha_itachi_say(_: Vec<InputImage>, texts: Vec<String>, _: NoOptions) -> Re
         text,
         20.0,
         80.0,
-        &["Noto Sans SC"],
+        &["Noto Sans CJK SC"],
         &new_paint(Color::from_rgb(0, 0, 0)),
     );
     encode_png(surface.image_snapshot())

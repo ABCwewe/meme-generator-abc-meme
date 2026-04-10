@@ -23,7 +23,7 @@ fn mutsumi_think(_: Vec<InputImage>, texts: Vec<String>, _: NoOptions) -> Result
         20.0,
         50.0,
         text_params!(
-            font_families = &["Noto Sans SC"],
+            font_families = &["Noto Sans CJK SC"],
             text_align = TextAlign::Center,
             paint = new_paint(Color::from_rgb(0, 0, 0)),
         ),
