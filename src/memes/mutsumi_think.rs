@@ -23,7 +23,7 @@ fn mutsumi_think(_: Vec<InputImage>, texts: Vec<String>, _: NoOptions) -> Result
         20.0,
         50.0,
         text_params!(
-            font_families = &["FZShaoEr-M11S"],
+            font_families = &["Noto Sans SC"],
             text_align = TextAlign::Center,
             paint = new_paint(Color::from_rgb(0, 0, 0)),
         ),
@@ -39,7 +39,7 @@ register_meme!(
     min_texts = 1,
     max_texts = 1,
     default_texts = &["好女孩..."],
-    keywords = &["木头想", "睦想"],
+    keywords = &["木头想", "睦想", "木头说"],
     date_created = local_date(2026, 4, 10),
     date_modified = local_date(2026, 4, 10),
 );
