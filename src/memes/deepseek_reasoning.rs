@@ -23,8 +23,8 @@ fn deepseek_reasoning(
     let canvas = surface.canvas();
 
     // 字号上限与背景图中“已思考（用时 0 秒）”的字号匹配
-    let (max_font_size, min_font_size) = (39.0, 24.0);
-    let rect = IRect::from_ltrb(161, 260, 618, 384);
+    let (max_font_size, min_font_size) = (40.0, 24.0);
+    let rect = IRect::from_ltrb(161, 265, 618, 384);
     let area_width = (rect.right() - rect.left()) as f32;
     let area_height = (rect.bottom() - rect.top()) as f32;
     let params = text_params!(
