@@ -1,5 +1,10 @@
 name: Build
 
+# rustc 版本必须与服务器上部署的官方 meme-generator（pip 0.2.3）构建时一致（1.93.1）。
+# 构建容器不含 rustc，@stable 会随时间漂移；跨 rustc 版本的动态库 ABI 不兼容，
+# 表情包加载正常但第一次调用会段错误。升级服务端后同步更新此版本
+# （官方包加载表情包时的 WARN 日志会打印两侧 rustc 版本）。
+
 on:
   push:
     branches:
@@ -23,12 +28,35 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.93.1
 
       - uses: swatinem/rust-cache@v2
 
       - name: Build
         run: cargo build --release
+
+      # 用官方 pip 包实际加载本 .so 并生成一次，验证 rustc 版本匹配；
+      # 容器内无中文字体，仅验证不崩溃，不校验渲染效果
+      - name: Smoke test (official pip package)
+        run: |
+          pip3 install meme-generator
+          export MEME_HOME=$GITHUB_WORKSPACE/.meme_home
+          mkdir -p "$MEME_HOME/libraries" "$MEME_HOME/resources/images"
+          cp target/release/lib*.so "$MEME_HOME/libraries/"
+          cp -r resources/images/* "$MEME_HOME/resources/images/"
+          printf '[meme]\nload_builtin_memes = false\nload_external_memes = true\n' > "$MEME_HOME/config.toml"
+          python3 - <<'EOF'
+          import meme_generator as mg
+
+          print("pip package:", mg.get_version())
+          keys = mg.get_meme_keys()
+          assert keys, "no memes loaded from libraries"
+          for key in keys:
+              meme = mg.get_meme(key)
+              out = meme.generate([], list(meme.info.params.default_texts), {})
+              assert isinstance(out, bytes), (key, out)
+          print("smoke test OK:", keys)
+          EOF
 
       - uses: actions/upload-artifact@v4
         with:
@@ -41,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.93.1
 
       - uses: swatinem/rust-cache@v2
 
@@ -68,7 +96,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.93.1
 
       - uses: swatinem/rust-cache@v2
 
@@ -87,7 +115,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.93.1
 
       - uses: swatinem/rust-cache@v2
 
