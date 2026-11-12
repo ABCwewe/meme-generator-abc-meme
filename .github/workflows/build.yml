@@ -53,7 +53,7 @@ jobs:
           assert keys, "no memes loaded from libraries"
           for key in keys:
               meme = mg.get_meme(key)
-              out = meme.generate([], list(meme.info.params.default_texts), {})
+              out = meme.generate_preview({})
               assert isinstance(out, bytes), (key, out)
           print("smoke test OK:", keys)
           EOF
