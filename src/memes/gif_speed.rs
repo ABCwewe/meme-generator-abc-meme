@@ -1,193 +1,44 @@
-use std::collections::{HashMap, HashSet};
-
-use skia_safe::{Codec, Data};
-
-use meme_generator_core::{
-    error::Error,
-    meme::{self, Meme, MemeInfo, MemeParams, OptionValue},
-};
-use meme_generator_utils::{
-    decoder::CodecExt,
-    encoder::GifEncoder,
-    image::ImageExt,
-    tools::{grid_pattern_image, local_date},
-};
-
-const MIN_FRAME_MS: f64 = 20.0;
-const DEFAULT_FRAME_MS: f64 = 100.0;
-
-struct GifSpeedMeme {
-    speed: u8,
-}
-
-impl Meme for GifSpeedMeme {
-    fn key(&self) -> String {
-        format!("gif_speed_{}", self.speed)
-    }
-
-    fn info(&self) -> MemeInfo {
-        MemeInfo {
-            key: self.key(),
-            params: MemeParams {
-                min_images: 1,
-                max_images: 1,
-                min_texts: 0,
-                max_texts: 0,
-                default_texts: Vec::new(),
-                options: Vec::new(),
-            },
-            keywords: vec![format!("加速{}", self.speed)],
-            shortcuts: Vec::new(),
-            tags: HashSet::new(),
-            date_created: local_date(2026, 11, 12),
-            date_modified: local_date(2026, 11, 12),
-        }
-    }
-
-    fn generate(
-        &self,
-        images: Vec<meme::Image>,
-        texts: Vec<String>,
-        _options: HashMap<String, OptionValue>,
-    ) -> Result<Vec<u8>, Error> {
-        if images.len() != 1 {
-            return Err(Error::ImageNumberMismatch(1, 1, images.len() as u8));
-        }
-        if !texts.is_empty() {
-            return Err(Error::TextNumberMismatch(0, 0, texts.len() as u8));
-        }
-        accelerate_gif(&images[0].data, self.speed)
-    }
-
-    fn generate_preview(&self, _options: HashMap<String, OptionValue>) -> Result<Vec<u8>, Error> {
-        let preview_gif = make_preview_gif()?;
-        accelerate_gif(&preview_gif, self.speed)
-    }
-}
-
-/// 根据原始每帧时长（毫秒）和加速倍率，计算输出帧序列 `(原帧索引, 输出时长秒)`。
-///
-/// 当加速后的单帧间隔低于 GIF 播放器安全下限（20ms，50fps）时，按时间轴重采样抽帧，
-/// 避免浏览器/社交软件将过小帧间隔回退为 100ms 导致反向变慢。
-fn plan_accelerated_frames(durations_ms: &[f64], speed: u8) -> Vec<(usize, f32)> {
-    let speed_f = speed as f64;
-    if durations_ms.iter().all(|&d| d / speed_f >= MIN_FRAME_MS) {
-        return durations_ms
-            .iter()
-            .enumerate()
-            .map(|(i, &d)| (i, (d / speed_f / 1000.0) as f32))
-            .collect();
-    }
-
-    let total_orig_ms: f64 = durations_ms.iter().sum();
-    let total_target_ms = total_orig_ms / speed_f;
-    let max_samples = ((total_target_ms + 1e-6) / MIN_FRAME_MS).floor() as usize;
-    let sample_count = max_samples.max(2);
-    let sample_duration_sec = ((total_target_ms / sample_count as f64) / 1000.0)
-        .max(MIN_FRAME_MS / 1000.0) as f32;
-
-    let mut ends = Vec::with_capacity(durations_ms.len());
-    let mut acc = 0.0;
-    for &d in durations_ms {
-        acc += d;
-        ends.push(acc);
-    }
-
-    let step_orig_ms = total_orig_ms / sample_count as f64;
-    let mut out: Vec<(usize, f32)> = Vec::with_capacity(sample_count);
-    let mut frame_idx = 0;
-
-    for k in 0..sample_count {
-        let t = k as f64 * step_orig_ms;
-        while frame_idx + 1 < durations_ms.len() && ends[frame_idx] <= t + 1e-6 {
-            frame_idx += 1;
-        }
-        if let Some((last_idx, last_dur)) = out.last_mut()
-            && *last_idx == frame_idx
-        {
-            *last_dur += sample_duration_sec;
-        } else {
-            out.push((frame_idx, sample_duration_sec));
-        }
-    }
-
-    if out.len() == 1 && durations_ms.len() >= 2 {
-        out.push((durations_ms.len() - 1, sample_duration_sec));
-    }
-
-    out
-}
-
-fn accelerate_gif(data: &[u8], speed: u8) -> Result<Vec<u8>, Error> {
-    let sk_data = Data::new_copy(data);
-    let mut codec =
-        Codec::from_data(sk_data).ok_or(Error::ImageDecodeError("Skia decode error".to_string()))?;
-
-    if !codec.is_multi_frame() {
-        return Err(Error::MemeFeedback("请发送动图（GIF）".to_string()));
-    }
-
-    let count = codec.get_frame_count();
-    let mut durations_ms = Vec::with_capacity(count);
-    for i in 0..count {
-        let frame_info = codec
-            .get_frame_info(i)
-            .ok_or(Error::ImageDecodeError("Skia decode error".to_string()))?;
-        let d = if frame_info.duration > 0 {
-            frame_info.duration as f64
-        } else {
-            DEFAULT_FRAME_MS
-        };
-        durations_ms.push(d);
-    }
-
-    let plan = plan_accelerated_frames(&durations_ms, speed);
-    let mut encoder = GifEncoder::new();
-    for (frame_index, duration) in plan {
-        let frame = codec.get_frame(frame_index)?;
-        encoder.add_frame(frame, duration)?;
-    }
-    encoder.finish()
-}
-
-fn make_preview_gif() -> Result<Vec<u8>, Error> {
-    let img = grid_pattern_image().resize_exact((120, 120));
-    let mut encoder = GifEncoder::new();
-    for i in 0..8 {
-        let rotated = img.rotate_crop((i * 45) as f32);
-        encoder.add_frame(rotated, 0.2)?;
-    }
-    encoder.finish()
-}
+use crate::gif_utils::{GifMode, register_gif_edit_meme};
 
 macro_rules! register_gif_speed {
-    ($key:literal, $speed:expr) => {
-        inventory::submit! {
-            $crate::registry::MemeDeclaration {
-                name: $key,
-                builder: || -> Box<dyn meme_generator_core::meme::Meme> {
-                    Box::new(GifSpeedMeme { speed: $speed })
-                },
-            }
-        }
+    ($key:literal, $keyword:literal, $speed:expr) => {
+        register_gif_edit_meme!(
+            $key,
+            &[$keyword],
+            GifMode::Speed($speed),
+            (2026, 11, 12),
+            (2026, 11, 12),
+        );
     };
 }
 
-register_gif_speed!("gif_speed_2", 2);
-register_gif_speed!("gif_speed_3", 3);
-register_gif_speed!("gif_speed_4", 4);
-register_gif_speed!("gif_speed_5", 5);
-register_gif_speed!("gif_speed_6", 6);
-register_gif_speed!("gif_speed_7", 7);
-register_gif_speed!("gif_speed_8", 8);
-register_gif_speed!("gif_speed_9", 9);
-register_gif_speed!("gif_speed_10", 10);
+register_gif_speed!("gif_speed_2", "加速2", 2);
+register_gif_speed!("gif_speed_3", "加速3", 3);
+register_gif_speed!("gif_speed_4", "加速4", 4);
+register_gif_speed!("gif_speed_5", "加速5", 5);
+register_gif_speed!("gif_speed_6", "加速6", 6);
+register_gif_speed!("gif_speed_7", "加速7", 7);
+register_gif_speed!("gif_speed_8", "加速8", 8);
+register_gif_speed!("gif_speed_9", "加速9", 9);
+register_gif_speed!("gif_speed_10", "加速10", 10);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::registry::MemeDeclaration;
-    use meme_generator_utils::encoder::encode_png;
+    use std::collections::HashMap;
+
+    use skia_safe::{Codec, Data};
+
+    use meme_generator_core::{
+        error::Error,
+        meme::{self, Meme},
+    };
+    use meme_generator_utils::{
+        encoder::{GifEncoder, encode_png},
+        image::ImageExt,
+        tools::grid_pattern_image,
+    };
+
+    use crate::{gif_utils::plan_accelerated_frames, registry::MemeDeclaration};
 
     #[test]
     fn test_plan_keeps_all_frames_when_above_min_delay() {
@@ -264,7 +115,7 @@ mod tests {
             .unwrap_err();
         assert!(matches!(err, Error::MemeFeedback(_)));
 
-        // Build a 20-frame 100ms GIF (total 2000ms) and test 2x and 10x
+        // Build a 20-frame 100ms GIF (total 2000ms) and test 2x..10x
         let img = grid_pattern_image().resize_exact((64, 64));
         let mut enc = GifEncoder::new();
         for i in 0..20 {
